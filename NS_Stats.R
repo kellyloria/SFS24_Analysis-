@@ -34,6 +34,7 @@ se <- function(dat){
 #============================================
 # * consider deleting: /Users/kellyloria/Documents/LittoralMetabModeling/plotDat/
 
+getwd()
 SFS_datQ <- read.csv("./SFS24_analysis_dat/SFS24_analysis_dat.csv") %>%
   mutate(date = as.Date(date))
 
@@ -92,7 +93,6 @@ r.squaredGLMM(gpp_mod1)
 gpp_mod2 <- lmer(log(middle_GPP+1) ~ 
                   scale(lag_middle_GPP) +
                   scale(ppt_mm)+ 
-                  #scale(tmax_C) + 
                   scale(light_mean) +
                   scale(windsp_cv) +
                   scale(flow_mean) +
@@ -161,8 +161,24 @@ vif(gpp_mod6)
 hist(residuals(gpp_mod6))
 r.squaredGLMM(gpp_mod6)
 
+
+# Double checking relationships with out the autoregressive GPP
+gpp_mod7 <- lmer(log(middle_GPP+1) ~ 
+                   scale(light_cv) +
+                   scale(windsp_cv) +
+                   #scale(flow_cv) +
+                   scale(spc_cv) +
+                   (1|site.x), data=SFS_datQ)
+
+summary(gpp_mod7)
+vif(gpp_mod7)
+hist(residuals(gpp_mod7))
+r.squaredGLMM(gpp_mod7)
+
 # quick model comparison: 
-AIC(gpp_mod, gpp_mod1, gpp_mod2, gpp_mod3, gpp_mod4, gpp_mod5, gpp_mod6)
+AIC(gpp_mod, gpp_mod1, gpp_mod2, gpp_mod3, gpp_mod4, gpp_mod5, gpp_mod6, gpp_mod7)
+
+
 
 
 

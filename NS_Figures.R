@@ -101,250 +101,101 @@ p2
 #                       legend = "bottom")
 # 
 
-#### Convert data from long to wide
-str(LM_data)
-LM_data_wide <- LM_data %>%
-  pivot_wider(
-    id_cols = c(date, site),
-    names_from = name,
-    values_from = c(middle, upper, lower)
-  )
 
+##===========================================
+## read data aggregated data for the project:
+#============================================
+# * consider deleting: /Users/kellyloria/Documents/LittoralMetabModeling/plotDat/
 
-BW2sumNEP<- BWNS2%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-BW2NEP <- reshape(data=BW2sumNEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
+getwd()
+SFS_datQ <- read.csv("./SFS24_analysis_dat/SFS24_analysis_dat.csv") %>%
+  mutate(date = as.Date(date))
 
-BW3sumNEP <- rbind(BWNS3, BWNS3_22)
-BW3sumNEP<- BW3sumNEP%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-BW3NEP <- reshape(data=BW3sumNEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
+str(SFS_datQ)
+##===========================================
+## Begin plotting  
+#============================================
 
+## Best fit glm 
+##  log(GPP+1) = β0 + β1 *scale(lag_GPP)+β3*scale(light_mean)+ β4*scale(windsp_cv)+ β6*scale(spc_mean)+b0i +ϵi 
 
-# BW 2021: all, 2022: NS1 and 2
-BW1sum <- rbind(BWNS1, BWNS1_22)
-BWs1NEP<- BW1sum%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-# long to wide
+names(SFS_datQ)
+SFS_datQ1 <-SFS_datQ%>%
+  filter(middle_GPP <= 30 & middle_ER >= -30)
 
-#library(reshape2)
-BW1NEP <- reshape(data=BWs1NEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
-
-
-BW2sumNEP<- BWNS2%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-BW2NEP <- reshape(data=BW2sumNEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
-
-
-GB1sumNEP<- GBNS1%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-GB1NEP <- reshape(data=GB1sumNEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
-
-GBNS3_nep <- rbind(GBNS3, GBNS3_22)
-
-GB3sumNEP<- GBNS3_nep%>%
-  subset(name=="NEP") %>%
-  subset(middle <= 40 & middle >= -40)
-GB3NEP <- reshape(data=GB3sumNEP, idvar="date",
-                  v.names = "middle",
-                  timevar = "name",
-                  direction="wide")
-
-# long to wide
-
-
-
-se <- function(dat){
-  se <- sd(dat)/sqrt(length(dat))
-  return(se)}
-
-BW_NEP <- rbind(BW1NEP, BW2NEP,BW3NEP)
-BW_NEP$shore <-"west"
-
-# subset for oct 01
-BW_NEP21<- subset(BW_NEP, date>as.Date("2022-03-01"))
-
-mean(BW_NEP21$middle.NEP)
-se(BW_NEP21$middle.NEP)
-
-
-GB_NEP <- rbind(GB1NEP, GB3NEP)
-GB_NEP$shore <- "east"
-# subset for oct 01
-GB_NEP21<- subset(GB_NEP, date>as.Date("2021-03-01"))
-mean(GB_NEP21$middle.NEP)
-se(GB_NEP21$middle.NEP)
-
-
-
-
-
-sumNEP <-rbind(BW_NEP,GB_NEP)
-
-
-sumNEPplot <- ggplot(data = sumNEP %>% drop_na(year),aes(date, middle.NEP, color = shore))+
-  geom_hline(yintercept = 0, size = 0.3, color = "gray50")+
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = shore),
+GGP_plot <- ggplot(data = SFS_datQ1, aes(date, middle_GPP, color = site.x))+
+  geom_ribbon(aes(ymin = lower_GPP, ymax = upper_GPP, fill = site.x),
               linetype = 0, alpha = 0.2)+
   geom_line()+ geom_point(size= 3, alpha = 0.6)+
-  geom_vline(xintercept = as.numeric(as.Date("2022-01-01")),
-             color = "#4c4d4c") +
-  scale_color_manual(values=c("#a67d17", "#3283a8")) +
-  scale_fill_manual(values = c("#a67d17", "#3283a8")) +
-  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+ #new
+  #scale_color_manual(values=c("#a67d17", "#3283a8")) +
+  #scale_fill_manual(values = c("#a67d17", "#3283a8")) +
+  scale_x_date(date_breaks = "3 month", date_labels = "%b-%y")+ #new
   #ylim(-15, 15) +
-  scale_y_continuous(breaks = seq(-15, 24, by = 3))+
-  labs(y=expression(mmol~O[2]~m^-3~d^-1)) + 
-  theme_classic() + 
+  #scale_y_continuous(breaks = seq(-15, 24, by = 3))+
+  labs(y=expression("log(GPP+1)",mmol~O[2]~m^-3~d^-1)) + 
+  theme_bw() + 
   theme(axis.text=element_text(size=18),
         axis.title=element_text(size=20),
-        axis.text.x=element_text(angle=60, hjust=1), # new
         legend.position = 'right', 
         legend.direction = "vertical")
 
 # ggsave(plot = sumNEPplot, filename = paste("./figures/LA_NEP_all.png",sep=""),width=8.5,height=6.5,dpi=300)
 
 
-
-p2 <- ggplot(data = GB_NEP %>% drop_na(year),aes(date, middle.NEP, color = site))+
-  geom_hline(yintercept = 0, size = 0.3, color = "gray50")+
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site),
-              linetype = 0, alpha = 0.2)+
-  geom_line()+ geom_point(size= 3, alpha = 0.6)+
-  geom_vline(xintercept = as.numeric(as.Date("2022-01-01")),
-             color = "#4c4d4c") +
-  #geom_point(data = out %>% left_join(c14),aes(x=yday,y=(p80/12.011),color="C14")) +
-  scale_color_manual(values = c("#982649", "#003F91", "#333333")) +
-  scale_fill_manual(values = c("#982649","#003F91","black")) +
-  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+ #new
-  ylim(-35, 35) +
-  labs(y=expression(mmol~O[2]~m^-3~d^-1)) + 
-  theme_classic() + 
-  theme(axis.text=element_text(size=18),
-        axis.title=element_text(size=20),
-        axis.text.x=element_text(angle=60, hjust=1), # new
-        legend.position = 'bottom', 
-        legend.direction = "horizontal") +
-  facet_grid((site~.))
-p2
-
-
-max(BW_NEP$middle.NEP)
+GGP_b4_plot <- ggplot(data = SFS_datQ1, aes(windsp_cv, log(middle_GPP+1), color = site.x)) +
+  #geom_pointrange(aes(ymin = log(lower_GPP+1), ymax = log(upper_GPP+1), fill = site.x), alpha = 0.2)+
+  geom_point(size = 3, alpha = 0.6) +
+  labs(y = "log(GPP+1)")+
+  theme_bw() + 
+  theme(
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 20), 
+    legend.position = 'right', 
+    legend.direction = "vertical"
+  )
 
 
 
+GGP_b6_plot <- ggplot(data = SFS_datQ1, aes(spc_mean, log(middle_GPP+1), color = site.x)) +
+  geom_pointrange(aes(ymin = log(lower_GPP+1), ymax = log(upper_GPP+1), fill = site.x), alpha = 0.2)+
+  geom_point(size = 3, alpha = 0.6) +
+  labs(y = "log(GPP+1)")+
+  theme_bw() + 
+  theme(
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 20), 
+    legend.position = 'right', 
+    legend.direction = "vertical"
+  )
 
 
-p2 <- ggplot(data = BW_NEP %>% drop_na(year),aes(date, middle.NEP, color = site))+
-  geom_hline(yintercept = 0, size = 0.3, color = "gray50")+
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = site),
-              linetype = 0, alpha = 0.2)+
-  geom_line()+ geom_point(size= 3, alpha = 0.6)+
-  geom_vline(xintercept = as.numeric(as.Date("2022-01-01")),
-             color = "#4c4d4c") +
-  #geom_point(data = out %>% left_join(c14),aes(x=yday,y=(p80/12.011),color="C14")) +
-  scale_color_manual(values = c("#982649", "#003F91", "#333333")) +
-  scale_fill_manual(values = c("#982649","#003F91","black")) +
-  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+ #new
-  ylim(-35, 35) +
-  labs(y=expression(mmol~O[2]~m^-3~d^-1)) + 
-  theme_classic() + 
-  theme(axis.text=element_text(size=18),
-        axis.title=element_text(size=20),
-        axis.text.x=element_text(angle=60, hjust=1), # new
-        legend.position = 'bottom', 
-        legend.direction = "horizontal") +
-  facet_grid((site~.))
-p2
+
+
+GGP_b1_plot <- ggplot(data = SFS_datQ1, aes(light_cv, log(middle_GPP+1), color = site.x)) +
+  geom_pointrange(aes(ymin = log(lower_GPP+1), ymax = log(upper_GPP+1), fill = site.x), alpha = 0.2)+
+  geom_point(size = 3, alpha = 0.6) +
+  labs(y = "log(GPP+1)")+
+  theme_bw() + 
+  theme(
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 20), 
+    legend.position = 'right', 
+    legend.direction = "vertical"
+  )
+
+
+
+#######
+######
+######
+## JUNK CODE BELOW 
+
+
 
 # LAKE NEP drivers
 
 # streamflow?
 # DOdat from 2022Figures 
-
-## FLOW
-# library(dataRetrieval)
-## Add in flow data
-siteNo <- "10336730"
-pCode <- c("00060")
-start.date <- "2021-06-01"
-end.date <- "2022-10-01"
-
-GBflow <- readNWISdata(siteNumbers = siteNo,
-                       parameterCd = pCode,
-                       startDate = start.date,
-                       endDate = end.date)
-
-GBflow.ts <- GBflow %>% select("dateTime", "X_00060_00003") %>% 
-  dplyr::rename(datetime = "dateTime", dischargeCFS = "X_00060_00003") %>%
-  select("datetime", "dischargeCFS")
-
-GBflow.ts$Site<- "GB"
-GBflow.ts$shore<-"east"
-
-
-siteNo <- "10336660"
-pCode <- c("00060")
-start.date <- "2021-06-01"
-end.date <- "2022-10-01"
-
-
-flow <- readNWISdata(siteNumbers = siteNo,
-                     parameterCd = pCode,
-                     startDate = start.date,
-                     endDate = end.date)
-
-BWflow.ts <- flow %>% select("dateTime", "X_00060_00003") %>% 
-  dplyr::rename(datetime = "dateTime", dischargeCFS = "X_00060_00003") %>%
-  select("datetime", "dischargeCFS")
-
-BWflow.ts$Site<- "BW"
-BWflow.ts$shore<-"west"
-
-flow<- rbind(BWflow.ts, GBflow.ts)
-str(flow)
-sumNEPF <- left_join(sumNEP, flow,  by=c('date'='datetime', 'shore'='shore'))
-
-library(lmerTest)
-library(lme4)
-library(MuMIn)
-hist(sumNEPF$dischargeCFS)
-hist(log(sumNEPF$dischargeCFS +1))
-hist((sumNEPF$middle.NEP))
-
-
-mod1<- glm(middle.NEP~ scale(dischargeCFS)+ (shore), data=sumNEPF)
-summary(mod1)
-
-mod2<- lmer(middle.NEP~ scale(dischargeCFS)+ (shore) + (1|site), data=sumNEPF)
-summary(mod2)
-
-
-mod3<- lmer(middle.NEP~ scale(dischargeCFS)+ (1|site), data=sumNEPF)
-summary(mod3)
-
-hist(residuals(mod2))
-r.squaredGLMM(mod2)
 
 
 
@@ -373,38 +224,6 @@ sumNEPplot <- ggplot(data = sumNEPF %>% drop_na(year),aes(log(dischargeCFS), mid
 #+ facet_grid((shore~.))
 
 # ggsave(plot = sumNEPplot, filename = paste("./figures/NEP_flow_all.png",sep=""),width=4.25,height=4,dpi=300)
-
-
-
-
-# stream SPC
-sumNEPF <- left_join(sumNEP, flow,  by=c('date'='datetime', 'shore'='shore'))
-
-
-
-GBL22_SPC<- read.csv("/Users/kellyloria/Documents/UNR/MSMmetab/CleanDat/22_GBL_SPC.csv")
-GBL22_SPC$solar.time <- as.POSIXct(GBL22_SPC$datetime,
-                                   format = "%Y-%m-%d %H:%M:%S",
-                                   tz = "UTC")
-GBL22_SPC$site<- "GBL"
-GBL22_SPC$shore<- "east"
-
-BWL22_SPC<- read.csv("/Users/kellyloria/Documents/UNR/MSMmetab/CleanDat/22_BWL_SPC.csv")
-BWL22_SPC$solar.time <- as.POSIXct(BWL22_SPC$datetime,
-                                   format = "%Y-%m-%d %H:%M:%S",
-                                   tz = "UTC")
-BWL22_SPC$site<- "BWL"
-BWL22_SPC$shore<- "west"
-
-
-SPC_dat<- rbind(BWL22_SPC, GBL22_SPC)
-SPC_datD <- SPC_dat %>% 
-  mutate(date= as.Date(datetime)) %>%
-  group_by(date, site, shore) %>% 
-  summarise(SPCmean = mean(SPC,na.rm = T),
-            SPCstd = sd(SPC, na.rm = T))
-
-sumNEPFSPC <- left_join(sumNEPF, SPC_datD[,c("date", "shore", "SPCmean", "SPCstd")],  by=c('date'='date', 'shore'='shore'))
 
 
 
