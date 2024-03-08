@@ -299,7 +299,7 @@ r.squaredGLMM(mod1)
 
 
 
-## STREAM PLOT
+## STREAM PLOTS ##
 
 BWL <- read.csv("/Users/kellyloria/Documents/LittoralMetabModeling/plotDat/BWL_daily.csv")
 BWL$date <- as.Date(BWL$date, origin="2021-01-01")
@@ -307,7 +307,7 @@ BWL$site <- "BWL"
 BWL$shore <- "west"
 
 
-GBL <- read.csv("./GBL_daily.csv")
+GBL <- read.csv("/Users/kellyloria/Documents/LittoralMetabModeling/plotDat/GBL_daily.csv")
 GBL$date <- as.Date(GBL$date, origin="2021-01-01")
 GBL$site <- "GBL"
 GBL$shore <- "east"
@@ -329,14 +329,25 @@ Eplot_sp <- ggplot(GBL, aes(x = GPP_mean, y = ER_mean)) + ylab("Ecosystem respir
   theme_classic()
 
 
+Odd_plot <- ggplot(GBL, aes(x = K600_daily_mean, color = shore, fill = shore)) +
+  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5, bins = 15) +
+  scale_fill_manual(values = alpha(c("#a67d17"), 0.2)) +
+  scale_color_manual(values = alpha(c("#a67d17"), 0.9)) + theme_bw() + 
+  geom_vline(data = GBL, aes(xintercept = mean(na.omit(K600_daily_mean))), linetype = "dashed") 
+
+Wplot_sp <- ggplot(GBL, aes(x = K600_daily_mean, y = (ER_mean*-1))) +  
+  geom_point(shape= 17, col = alpha(c("#a67d17"),0.5)) +
+  #geom_abline(intercept = 0, slope = 1, col = "grey50")  +
+  theme_bw()
+
 Wplot_sp <- ggplot(BWL, aes(x = GPP_mean, y = ER_mean)) + ylab("Ecosystem respiration") + 
   xlab("Gross primary productivity") + #ylim(-25, 0) + xlim(0,5) + 
-  geom_point(aes(x = GPP_mean, y = ER_mean), shape= 17, col = alpha(c("#a67d17"),0.5)) +
+  geom_point(aes(x = GPP_mean, y = ER_mean), shape= 17, col = alpha(c("#3283a8"),0.5)) +
   geom_abline(intercept = 0, slope = -1, col = "grey50")+
   stat_density2d(aes(colour = ..level..)) +
   scale_colour_gradient(
-    low = "#faefd4",
-    high = "#a67d17",
+    low = "#3283a8",
+    high = "#3283a8",
     space = "Lab",
     na.value = "grey50",
     guide = "colourbar",
@@ -345,11 +356,25 @@ Wplot_sp <- ggplot(BWL, aes(x = GPP_mean, y = ER_mean)) + ylab("Ecosystem respir
   theme_classic()
 
 
+Odd_plot <- ggplot(BWL, aes(x = K600_daily_mean, color = shore, fill = shore)) +
+  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5, bins = 15) +
+  scale_fill_manual(values = alpha(c("#3283a8"), 0.2)) +
+  scale_color_manual(values = alpha(c("#3283a8"), 0.9)) + theme_bw() + 
+  geom_vline(data = BWL, aes(xintercept = mean(na.omit(K600_daily_mean))), linetype = "dashed") 
+
+
+Wplot_sp <- ggplot(BWL, aes(x = K600_daily_mean, y = (ER_mean*-1))) +  
+  geom_point(shape= 17, col = alpha(c("#3283a8"),0.5)) +
+  #geom_abline(intercept = 0, slope = 1, col = "grey50")  +
+  theme_bw()
+
 
 BWL$NEP<- BWL$GPP_daily_mean + BWL$ER_daily_mean
 BWL$NEP_sd<- sd(BWL$GPP_daily_mean + BWL$ER_daily_mean)
 
 GBL$NEP<- GBL$GPP_daily_mean + GBL$ER_daily_mean
+GBL$NEP_sd<- sd(GBL$GPP_daily_mean + GBL$ER_daily_mean)
+
 
 names(GBL)
 
@@ -373,30 +398,6 @@ StreamGPPplot <- ggplot(data = streamNEP, aes(date, GPP_daily_mean, color = shor
         axis.title=element_text(size=20),# new
         legend.position = 'right')
 
-
-
-
-StreamERplot <- ggplot(data = streamNEP, aes(date, ER_daily_mean, color = shore))+
-  geom_hline(yintercept = 0, size = 0.3, color = "gray50") +
-  geom_point(size= 1, alpha = 0.6) +
-  geom_line() +
-  geom_pointrange(aes(ymin =(ER_2.5pct), 
-                      ymax = (ER_97.5pct)), alpha = 0.75) +
-  geom_vline(xintercept = as.numeric(as.Date("2022-01-01")),
-             color = "#4c4d4c") +
-  scale_color_manual(values=c("#a67d17", "#3283a8")) +
-  scale_fill_manual(values = c("#a67d17", "#3283a8")) +
-  scale_x_date(date_breaks = "3 month", date_labels = "%b-%Y")+ #new
-  scale_y_continuous(breaks = seq(-30, 25, by = 5))+
-  labs(y=expression(ERmmol~O[2]~m^-3~d^-1)) + 
-  theme_bw() + 
-  theme(axis.text=element_text(size=18),
-        axis.title=element_text(size=20),
-        legend.position = 'right')
-
-
-
-
 ## total grid:
 NEP_grid <- ggarrange(StreamGPPplot,
                       StreamERplot,
@@ -407,9 +408,34 @@ NEP_grid <- ggarrange(StreamGPPplot,
 # save plot to figures folder
 #  ggsave(plot = NEP_grid, filename = paste("./NEP_grid.png",sep=""),width=8,height=6.5,dpi=300)
 
+###
+
+###
+### Gas exchange:
+###
+
+StreamERplot <- ggplot(data = streamNEP, aes(K600_daily_mean, (ER_daily_mean*-1), color = shore))+
+  geom_point(size= 1, alpha = 0.6) +
+  geom_pointrange(aes(ymin =(-1*ER_2.5pct), 
+                      ymax = (-1*ER_97.5pct)), alpha = 0.75) +
+  scale_color_manual(values=c("#a67d17", "#3283a8")) +
+  scale_fill_manual(values = c("#a67d17", "#3283a8")) +
+  scale_y_continuous(breaks = seq(-30, 25, by = 5))+
+  labs(y=expression(ERmmol~O[2]~m^-3~d^-1)) + 
+  theme_bw() + 
+  theme(axis.text=element_text(size=18),
+        axis.title=element_text(size=20),
+        legend.position = 'right')+ facet_grid(.~shore)
+
+###
+Odd_plot <- ggplot(streamNEP, aes(x = K600_daily_mean, color = shore, fill = shore)) +
+  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5, bins = 15) +
+  scale_fill_manual(values = alpha(c("#3283a8", "#a67d17"), 0.2)) +
+  scale_color_manual(values = alpha(c("#3283a8", "#a67d17"), 0.9)) + theme_bw() + 
+  geom_vline(data = streamNEP, aes(xintercept = mean(na.omit(K600_daily_mean))), linetype = "dashed") +
+  facet_grid(.~shore)
 
 
-# ggsave(plot = StreamNEPplot, filename = paste("./figures/SM_NEP_all.png",sep=""),width=9.5,height=6.5,dpi=300)
 
 sumNEP_SM <- left_join(sumNEPF, streamNEP[,c("date", "shore", "NEP", "GPP_daily_mean", "ER_daily_mean")],  by=c('date'='date', 'shore'='shore'))
 
