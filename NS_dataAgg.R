@@ -60,11 +60,23 @@ LM_data <-LM_data %>%
 
 # add in column for date:
 LM_data$origin <- as.Date(paste0(LM_data$year, "-01-01"),) 
-LM_data$date <-as.Date(LM_data$yday, origin = LM_data1$origin) 
+LM_data$date <-as.Date(LM_data$yday, origin = LM_data$origin) 
+
+
+# get rid of NA's
+LM_data1 <- LM_data %>%
+  dplyr::group_by(date, site, name) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+
+summary(LM_data)
+
+LM_data_na <- LM_data %>% drop_na(date)
+summary(LM_data_na)
 
 #### Convert data from long to wide
 str(LM_data)
-LM_data_wide <- LM_data %>%
+LM_data_wide <- LM_data_na %>%
   pivot_wider(
     id_cols = c(date, site),
     names_from = name,
@@ -75,7 +87,7 @@ LM_data_wide <- LM_data %>%
 ## Bring in stream covariate data
 #============================================
 # precip, streamflow, stream temp, stream spc, chem, stream metab
-
+library(dataRetrieval)
 # Streamflow
 # Define the site numbers for "GB" and "BW"
 siteNo_GB <- "10336730"
@@ -106,6 +118,7 @@ HRflow_data_BW <- readNWISuv(siteNumbers = siteNo_BW, parameterCd = pCode_flow, 
     dischargeCMS= c(dischargeCFS*0.0283168),
     scale_Q= c((dischargeCFS*0.0283168)/11.2)) 
 
+
 # Combine data for both sites
 HRflow_data <- rbind(HRflow_data_GB, HRflow_data_BW) 
 
@@ -121,7 +134,7 @@ HRflow_sum <- HRflow_data %>%
 BWL_SPC <- read.csv("./23_CleanDat/23b_BWL_SPC.csv") %>%
   mutate(datetime = as_datetime(datetime, "America/Los_Angeles"),
          date=as.Date(datetime),
-         site="GBL") 
+         site="BWL") 
 
 GBL_SPC <- read.csv("./23_CleanDat/23b_GBL_SPC.csv") %>%
   mutate(datetime = as_datetime(datetime, "America/Los_Angeles"),
@@ -133,6 +146,7 @@ SPC_data <- rbind(GBL_SPC, BWL_SPC)
 SPC_sum <- SPC_data %>%
   group_by(site, date) %>%
   summarise(
+    stream_temp_SPC = mean(wtr_C, na.rm = TRUE),
     spc_mean = mean(SPC_full_uscm, na.rm = TRUE),
     spc_sd = sd(SPC_full_uscm, na.rm = TRUE),
     spc_cv = spc_sd / spc_mean  # coefficient of variation
@@ -174,16 +188,21 @@ light_dat <- read.csv("/Users/kellyloria/Documents/LittoralMetabModeling/RawData
   with_tz(tz = "America/Los_Angeles") %>%
   dplyr::select(site, datetime, light)
 
+unique(light_dat$site)
+
 wind_dat <- read.csv("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/NLDAS/processed_windsp/nearshore_NLDAS_windsp.csv") %>%
   mutate(datetime = as.POSIXct(datetime, format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")) %>%
   with_tz(tz = "America/Los_Angeles") %>%
   dplyr::select(site, datetime, windsp_ms)
 
+unique(wind_dat$site)
+
+
 ##====
 ## Merge climate datasets and change some grouping variables 
 ## final data selection: ##
 clim_dat <- light_dat %>%
-  left_join(wind_dat, by = c("datetime", "site")) %>%
+  left_join(wind_dat, by = c("site", "datetime")) %>%
   filter(datetime > as.POSIXct("2021-01-01 00:00:00"))  %>%
   mutate(
     shore = case_when( # create broad variable to lineup climate and DO dat
@@ -195,7 +214,7 @@ clim_dat <- light_dat %>%
     date=as.Date(datetime, format="%Y-%m-%d"))
 
 clim_sum <- clim_dat %>%
-  group_by(site,shore, date) %>%
+  group_by(shore, date) %>%
   summarise(
     light_mean = mean(light, na.rm = TRUE),
     light_sd = sd(light, na.rm = TRUE),
@@ -210,21 +229,32 @@ clim_sum2 <- PRISM %>%
 
 # lake only dataframe
 SFS_dat_ns <- LM_data_wide %>%
-  left_join(clim_sum2, by = c("site"="site.x", "date"))
+  left_join(clim_sum2, by = c("site"="site", "date"))
 
+streamDat1<- streamDat[,2:10]
 # stream dat
 SFS_dat <- SFS_dat_ns %>%
-  left_join(streamDat, by = c("shore"="shore", "date"))
+  left_join(streamDat1, by = c("shore"="shore", "date"))
 
+
+names(SFS_dat)
 # trim data 
 SFS_datQ <- SFS_dat %>%
-  dplyr::select(site.x, shore, date, middle_GPP, middle_ER, middle_NEP,
+  dplyr::select(site, shore, date, middle_GPP, middle_ER, middle_NEP,
                 upper_GPP, upper_ER, upper_NEP, lower_GPP,
                 lower_ER, lower_NEP,ppt_mm,tmin_C,tmean_C,
-                tmax_C,vpdmin_hPa,vpdmax_hPa, light_mean,light_cv,windsp_cv,
-                flow_mean,flow_sd,flow_cv, spc_mean, spc_sd, spc_cv
+                tmax_C,vpdmin_hPa,vpdmax_hPa, light_mean, light_cv, light_sd, windsp_mean, windsp_cv,
+                flow_mean, flow_sd, flow_cv, stream_temp_SPC, spc_mean, spc_sd, spc_cv
   )
+
+
+hist(SFS_datQ$middle_GPP)
+hist(log(SFS_datQ$middle_GPP+1))
+hist(SFS_datQ$middle_ER)
+
+summary(SFS_datQ)
 
 ## save dat: 
 # write.csv (x = SFS_datQ, file = "./SFS24_analysis_dat/SFS24_analysis_dat.csv", row.names = TRUE)
+# saveRDS(SFS_datQ, file = "./SFS24_analysis_dat/SFS24_analysis_dat.rds")
 
