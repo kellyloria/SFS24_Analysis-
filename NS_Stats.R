@@ -32,7 +32,7 @@ se <- function(dat){
 # * consider deleting: /Users/kellyloria/Documents/LittoralMetabModeling/plotDat/
 
 getwd()
-SFS_datQ <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/SFS24_data_T.rds")
+SFS_datQ <- readRDS("/Users/kellyloria/Documents/UNR/MSMmetab/SFS24_analysis_dat/SFS24_analysis_dat.rds")
 summary(SFS_datQ)
 str(SFS_datQ)
 
@@ -95,8 +95,15 @@ BW_dat1 <- BW_dat %>%
 unique(BW_dat$shore)
 round(mean(na.omit(BW_dat1$middle_GPP)),2)
 round(se(na.omit(BW_dat1$middle_GPP)),2)
+range(na.omit(BW_dat$middle_GPP))
 round(mean(na.omit(BW_dat1$middle_ER)),2)
 round(se(na.omit(BW_dat1$middle_ER)),2)
+round(se(na.omit(BW_dat$middle_ER)),2)
+range(na.omit(BW_dat$middle_ER))
+
+round(mean(na.omit(BW_dat$middle_NEP)),2)
+round(se(na.omit(BW_dat$middle_NEP)),2)
+
 summary(BW_dat1)
 max_index <- max(BW_dat$middle_GPP)
 print(BW_dat[max_index, ])
@@ -120,11 +127,22 @@ GB_dat <- SFS_datQ %>%
 GB_dat1 <- GB_dat %>%
   filter(date> as.Date("2023-02-07") & date < as.Date("2023-09-06"))
 unique(GB_dat$shore)
+round(mean(na.omit(GB_dat$middle_GPP)),2)
+round(se(na.omit(GB_dat$middle_GPP)),2)
+range(na.omit(GB_dat$middle_GPP))
+round(mean(na.omit(GB_dat$middle_ER)),2)
+round(se(na.omit(GB_dat$middle_ER)),2)
+summary(GB_dat)
+range(na.omit(GB_dat$middle_ER))
+
+
+
 round(mean(na.omit(GB_dat1$middle_GPP)),2)
 round(se(na.omit(GB_dat1$middle_GPP)),2)
+range(na.omit(GB_dat1$middle_GPP))
 round(mean(na.omit(GB_dat1$middle_ER)),2)
 round(se(na.omit(GB_dat1$middle_ER)),2)
-summary(GB_dat)
+
 
 SH_dat <- SFS_datQ %>%
   filter(shore=="SH")
@@ -150,16 +168,7 @@ hist(GPP_df$middle_GPP)
 hist(log(GPP_df$middle_GPP+1))
 
 gpp_fit1 <- glmmTMB((middle_GPP) ~ lag(middle_GPP, 1) + 
-                      lag(middle_GPP, 2) + 
-                      lag(middle_GPP, 3) + 
-                      lag(middle_GPP, 4) + 
-                      lag(middle_GPP, 5) + 
-                      lag(middle_GPP, 6) + 
-                      lag(middle_GPP, 7) + 
-                      lag(middle_GPP, 8) + 
-                      lag(middle_GPP, 9) + 
-                      lag(middle_GPP, 10) + 
-                      (1|site) + (1|shore), data = GPP_df, family = lognormal)
+                      (1|shore/site), data = GPP_df, family = lognormal)
 summary(gpp_fit1)
 residuals <- residuals(gpp_fit1)
 hist(residuals)
@@ -170,7 +179,7 @@ pacf(residuals, main="PACF of Residuals")
 
 gpp_fit2 <- glmmTMB((middle_GPP) ~ lag(middle_GPP, 1) + 
                       lag(middle_GPP, 2) +
-                      (1|site) + (1|shore), data = GPP_df, family = gaussian)
+                      (1|shore/site), data = GPP_df, family = gaussian)
 summary(gpp_fit2)
 residuals2 <- residuals(gpp_fit2)
 hist(residuals2)
@@ -178,19 +187,7 @@ hist(residuals2)
 acf(residuals2, main="ACF of Residuals")
 pacf(residuals2, main="PACF of Residuals")
 
-gpp_fit3 <- glmmTMB((middle_GPP) ~ lag(middle_GPP, 1) + 
-                      lag(middle_GPP, 2)+
-                      lag(middle_GPP, 3) + 
-                      (1|site) + (1|shore), data = GPP_df, family = gaussian)
-summary(gpp_fit3)
-residuals3 <- residuals(gpp_fit3)
-hist(residuals3)
-# Plot ACF and PACF of residuals
-acf(residuals3, main="ACF of Residuals")
-pacf(residuals3, main="PACF of Residuals")
-
-
-AIC(gpp_fit1, gpp_fit2, gpp_fit3)
+AIC(gpp_fit1, gpp_fit2)
 
 ## 
 
@@ -216,7 +213,7 @@ library(PerformanceAnalytics)
 names(GPP_df_stream)
 
 # scale variables
-GPP_df_stream[, c(7, 19:26)] <- scale(GPP_df_stream[, c(7, 19:26)])
+# GPP_df_stream[, c(7, 19:26)] <- scale(GPP_df_stream[, c(7, 19:26)])
 Streamdf_cor <- GPP_df_stream[, c(7, 19:26)]
 
 chart.Correlation(Streamdf_cor, histogram=TRUE, pch=19)
@@ -1648,5 +1645,327 @@ G_plot <- ggplot(data = GPP_df1, aes(x= (lake_par_int), y=log(middle_GPP+1), col
 G_plot
 
 ggsave(plot = G_plot, filename = paste("./SFS24_Analysis/figures/SEM_GPP_par_w.png",sep=""),width=6,height=8,dpi=300)
+
+##########
+############
+##########
+
+
+# Chemistry models? 
+
+chem_dat <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/WaterChem/NS_chem_dat_nh4_24.rds") %>% # NS_chem_dat_nh4_24.rds NS_chem_dat_24.rds
+  filter(site!="BW10m" & site!="BW15m" & site!="BW20m" & 
+           site!="GB10m" & site!="GB15m" &  site!="GB20m")
+
+unique(chem_dat$site)
+summary(chem_dat) 
+
+chem_datQ <- chem_dat %>%
+  group_by(shore, location, date, substrate) %>%
+  summarise(
+    NO3_mgL_dl = mean(NO3_mgL_dl, na.rm=T),
+    NH3_mgL_dl= mean(NH3_mgL_dl, na.rm=T),
+    NH4_mgL_dl= mean(NH4_mgL_dl, na.rm=T),
+    PO4_ugL_dl = mean(PO4_ugL_dl, na.rm=T),
+    DOC_mgL_dl = mean(DOC_mgL_dl, na.rm=T))
+
+
+summary(chem_datQ)
+
+# NH3_plot <- ggplot(data = chem_datQ%>%filter(location=="lake"), aes(x =date, y = NH3_mgL_dl, shape = substrate, color=shore)) +
+#   geom_point()+
+#   scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+#   theme_bw() +  geom_hline(yintercept = 0.002, color = "grey") +
+#   labs(y=expression(NH[3]~mg~L^-1), x=NULL) #+ facet_grid(substrate~.)
+# 
+
+NH4_plot <- ggplot(data = chem_datQ%>%filter(location=="lake"), aes(x =date, y = NH4_mgL_dl, shape = substrate, color=shore)) +
+  geom_point()+
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  theme_bw() +  geom_hline(yintercept = 0.002, color = "grey") +
+  labs(y=expression(NH[4]~mg~L^+1), x=NULL) #+ facet_grid(substrate~.)
+
+
+NO3_plot <- ggplot(data = chem_datQ%>%filter(location=="lake"), aes(x =date, y = NO3_mgL_dl, shape = substrate, color=shore)) +
+  geom_point()+
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  theme_bw() +  geom_hline(yintercept = 0.002, color = "grey") +
+  labs(y=expression(NO[3]~mg~L^-1), x=NULL) + facet_grid(substrate~.)
+
+
+PO4_plot <- ggplot(data = chem_datQ%>%filter(location=="lake"), aes(x =date, y = PO4_ugL_dl, shape = substrate, color=shore)) +
+  geom_point()+
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  theme_bw() +  geom_hline(yintercept = 0.002, color = "grey") +
+  labs(y=expression(o-phos~ug~L^-1), x=NULL) + facet_grid(substrate~.)
+
+######################################################
+chem_dat_wide <- chem_datQ %>%
+  filter(shore=="BW"|shore=="GB")%>%
+  pivot_wider(
+    id_cols = c("shore", "date", "substrate"),
+    names_from = c("location"),
+    values_from = c("NO3_mgL_dl", "NH4_mgL_dl", "PO4_ugL_dl", "DOC_mgL_dl")
+  )
+
+summary(chem_dat_wide)
+names(chem_dat_wide)
+stream_NO3 <- lmer(NO3_mgL_dl_stream~NO3_mgL_dl_lake + (1|shore), data=chem_dat_wide)
+summary(stream_NO3)
+r.squaredGLMM(stream_NO3)
+hist(residuals(stream_NO3))
+
+
+chem_dat_wide_datecheck <- chem_dat_wide%>%
+  filter(site=="BWNS1" |site=="BWNS2" |site=="BWNS3"|
+           site=="GBNS1" |site=="GBNS2" |site=="GBNS3")
+
+str(chem_dat_wide)
+
+dates <- unique(chem_dat_wide_datecheck$date)
+
+### GLM for stream NO3 (either pw or sw) and lake NO3
+
+str(as.data.frame(chem_datQ))
+
+chem_datQ$week <- week(chem_datQ$date)
+chem_datQ$year <- year(chem_datQ$date)
+chem_datQ$weekyear <- paste(chem_datQ$year, chem_datQ$week, sep = "-")
+
+chem_dat <-as.data.frame(chem_dat)
+
+
+chem_dat_wide <- chem_datQ %>%
+  filter(shore=="BW"|shore=="GB")%>%
+  pivot_wider(
+    id_cols = c("shore", "date", "substrate"),
+    names_from = c("location"),
+    values_from = c("NO3_mgL_dl", "NH3_mgL_dl", "PO4_ugL_dl", "DOC_mgL_dl")
+  )
+
+chem_dat_filtered <- chem_dat_wide %>%
+  mutate(week_period = ceiling(week(date) / 3))
+
+chem_dat_filtered <- chem_dat_filtered %>%
+  mutate(grouping_var = paste0(year(date), "-", week_period))
+
+chem_dat_wide_summary <- chem_dat_filtered %>%
+  group_by(shore, substrate, grouping_var) %>%
+  summarise(
+    NO3_mgL_dl_stream = mean(NO3_mgL_dl_stream, na.rm = TRUE),
+    NO3_mgL_dl_lake = mean(NO3_mgL_dl_lake, na.rm = TRUE),
+    NO3_mgL_dl_interface = mean(NO3_mgL_dl_interface, na.rm = TRUE),
+    NH4_mgL_dl_stream = mean(NH4_mgL_dl_stream, na.rm = TRUE),
+    NH4_mgL_dl_lake = mean(NH4_mgL_dl_lake, na.rm = TRUE),
+    NH4_mgL_dl_interface = mean(NH4_mgL_dl_interface, na.rm = TRUE),
+    PO4_ugL_dl_stream = mean(PO4_ugL_dl_stream, na.rm = TRUE),
+    PO4_ugL_dl_lake = mean(PO4_ugL_dl_lake, na.rm = TRUE),
+    PO4_ugL_dl_interface = mean(PO4_ugL_dl_interface, na.rm = TRUE),
+    DOC_mgL_dl_stream = mean(DOC_mgL_dl_stream, na.rm = TRUE),
+    DOC_mgL_dl_lake = mean(DOC_mgL_dl_lake, na.rm = TRUE),
+    DOC_mgL_dl_interface = mean(DOC_mgL_dl_interface, na.rm = TRUE),
+    # Add other variables and summary statistics as needed
+    .groups = "drop"
+  )
+
+NO3_plot <- ggplot(data = chem_dat_wide_summary%>%filter(NO3_mgL_dl_stream<0.15), aes(x =NO3_mgL_dl_lake,  y = NO3_mgL_dl_stream, color=shore, shape=substrate)) +
+  geom_point(size=2, alpha=c(0.75)) + geom_smooth(method="lm", color="grey25", se=F, lty=1) +
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) + theme_bw() #+ facet_grid(substrate~.)
+
+hist(chem_dat_wide_summary$NO3_mgL_dl_stream)
+hist(log10(chem_dat_wide_summary$NO3_mgL_dl_stream +1))
+stream_NO3 <- lmer(NO3_mgL_dl_stream~NO3_mgL_dl_lake + (1|shore), data=chem_dat_wide_summary)
+summary(stream_NO3)
+
+r.squaredGLMM(stream_NO3)
+hist(residuals(stream_NO3))
+
+
+######
+#####
+
+# Fit the linear mixed-effects model
+stream_NO3 <- lmer(NO3_mgL_dl_lake ~ NO3_mgL_dl_stream + (1 | shore), data = chem_dat_wide_summary)
+summary(stream_NO3)
+r.squaredGLMM(stream_NO3)
+hist(residuals(stream_NO3))
+# Extract the fixed effects coefficients
+coefficients <- fixef(stream_NO3)
+# Extract the slope coefficient
+slope <- coefficients["NO3_mgL_dl_stream"]
+# Calculate the reciprocal of the slope
+inverse_slope <- 1 / slope
+# Create a data frame for plotting the trend line
+trend_data <- data.frame(NO3_mgL_dl_stream = seq(min(na.omit(chem_dat_wide_summary$NO3_mgL_dl_stream)),
+                                                 max(na.omit(chem_dat_wide_summary$NO3_mgL_dl_stream)), length.out = 100),
+                         NO3_mgL_dl_lake = inverse_slope * seq(min(na.omit(chem_dat_wide_summary$NO3_mgL_dl_stream)),
+                                                               max(na.omit(chem_dat_wide_summary$NO3_mgL_dl_stream)), length.out = 100))
+
+# Plot
+NO3_plot <- ggplot(data = chem_dat_wide_summary, 
+                   aes(y = NO3_mgL_dl_lake, x = NO3_mgL_dl_stream)) +
+  geom_point(size = 2, alpha = 0.75, aes(shape = substrate, color=shore)) + 
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+  xlim(0,0.2) +ylim(0,0.2)+
+  geom_line(data = trend_data, aes(y = NO3_mgL_dl_lake, x = NO3_mgL_dl_stream), 
+            color = "grey25", linetype = 1) +  # Add trend line
+  geom_hline(yintercept = 0.003, color = "grey50") + 
+  geom_vline(xintercept = 0.003, color = "grey50") +
+  labs(y=expression(Lake~NO[3]^-1~mg~L^-1), x=expression(Stream~NO[3]^-1~mg~L^-1)) +
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  theme_bw()
+
+
+######
+######
+######
+
+
+# Fit the linear mixed-effects model
+stream_NH3 <- lmer(NH4_mgL_dl_lake ~ NH4_mgL_dl_stream + (1 | shore), data = chem_dat_wide_summary)
+summary(stream_NH3)
+r.squaredGLMM(stream_NH3)
+hist(residuals(stream_NH3))
+# Extract the fixed effects coefficients
+coefficients <- fixef(stream_NH3)
+# Extract the slope coefficient
+slope <- coefficients["NH4_mgL_dl_stream"]
+# Calculate the reciprocal of the slope
+inverse_slope <- 1 / slope
+# Create a data frame for plotting the trend line
+trend_data <- data.frame(NH4_mgL_dl_stream = seq(min(na.omit(chem_dat_wide_summary$NH4_mgL_dl_stream)),
+                                                 max(na.omit(chem_dat_wide_summary$NH4_mgL_dl_stream)), length.out = 100),
+                         NH4_mgL_dl_lake = inverse_slope * seq(min(na.omit(chem_dat_wide_summary$NH4_mgL_dl_stream)),
+                                                               max(na.omit(chem_dat_wide_summary$NH4_mgL_dl_stream)), length.out = 100))
+
+
+# Plot
+NH3_plot <- ggplot(data = chem_dat_wide_summary, 
+                   aes(y = NH4_mgL_dl_lake, x = NH4_mgL_dl_stream, color = shore)) +
+  geom_point(size = 2, alpha = 0.75, aes(shape = substrate)) + 
+  geom_line(data = trend_data, aes(y = NH4_mgL_dl_lake, x = NH4_mgL_dl_stream), 
+            color = "grey25", linetype = 1) +  # Add trend line
+  geom_hline(yintercept = 0.002, color = "grey50") + 
+  geom_vline(xintercept = 0.002, color = "grey50") +
+  labs(y = expression(Lake~NH[4]^+1~mg~L^-1), x = expression(Stream~NH[4]^+1~mg~L^-1)) +
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+  xlim(0,0.1) + ylim(0,0.1) +
+  theme_bw()
+
+NH3_plot
+
+
+
+# # Plot
+# NH3_plot <- ggplot(data = chem_dat_wide_summary, 
+#                    aes(y = NH4_mgL_dl_lake, x = NH4_mgL_dl_stream, color = shore)) +
+#   geom_point(size = 2, alpha = 0.75, aes(shape = substrate)) + xlim(0,0.1) +ylim(0,0.1)+
+#   geom_line(data = trend_data, aes(y = NH4_mgL_dl_lake, x = NH4_mgL_dl_stream), 
+#             color = "grey25", linetype = 1) +  # Add trend line
+#   geom_hline(yintercept = 0.002, color = "grey50") + 
+#   geom_vline(xintercept = 0.002, color = "grey50") +
+#   labs(y=expression(Lake~NH[4]^+1~mg~L^-1), x=expression(Stream~NH[4]^+1~mg~L^-1)) +
+#   scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+#   theme_bw()
+# 
+# NH3_plot
+
+
+#####
+#####
+####
+
+
+# Fit the linear mixed-effects model
+stream_PO4 <- lmer(PO4_ugL_dl_lake ~ PO4_ugL_dl_stream + (1 | shore), data = chem_dat_wide_summary)
+summary(stream_PO4)
+# Create a data frame for plotting the trend line
+# Plot
+PO4_plot <- ggplot(data = chem_dat_wide_summary,
+                   aes(x = PO4_ugL_dl_stream, y = PO4_ugL_dl_lake, color = shore)) +
+  geom_point(size = 2, alpha = 0.75, aes(shape = substrate)) +
+  # geom_line(data = trend_data, aes(x = NO3_mgL_dl_lake, y = NO3_mgL_dl_stream), 
+  #           color = "grey25", linetype = 1) +  # Add trend line
+  labs(y=expression(Lake~ophos~ug~L^-1), x=expression(Stream~ophos~ug~L^-1)) +
+  geom_hline(yintercept = 0.402, color = "grey50") + 
+  geom_vline(xintercept = 0.402, color = "grey50") +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) + 
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01), 
+                     breaks = seq(0, 60, by = 12),
+                     limits = c(0, 60)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01), 
+                     breaks = seq(0, 60, by = 12),
+                     limits = c(0, 60)) +  
+  theme_bw()
+  
+
+
+
+library(tidyverse)
+
+# Remove rows with missing values
+chem_dat_wide_summary_clean <- chem_dat_wide_summary %>%
+  drop_na(DOC_mgL_dl_lake, DOC_mgL_dl_stream)
+
+# Plot
+DOC_plot <- ggplot(data = chem_dat_wide_summary_clean,
+                   aes(y = DOC_mgL_dl_lake, x = DOC_mgL_dl_stream, color = shore)) +
+  geom_point(size = 2, alpha = 0.75, aes(shape = substrate)) +
+  geom_hline(yintercept = 0.25, color = "grey50") + 
+  geom_vline(xintercept = 0.25, color = "grey50") +
+  labs(y = expression(Lake~DOC~mg~L^-1), x = expression(Stream~DOC~mg~L^-1)) +
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.01), 
+                     breaks = seq(0, 4.5, by = 0.9),
+                     limits = c(0, 4.5)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01), 
+                     breaks = seq(0, 4.5, by = 0.9),
+                     limits = c(0, 4.5)) +  
+  theme_bw()
+
+DOC_plot
+
+
+
+# Fit the linear mixed-effects model
+stream_DOC <- lmer(DOC_mgL_dl_lake ~ DOC_mgL_dl_stream + (1 | shore), data = chem_dat_wide_summary_clean)
+summary(stream_DOC)
+# # Create a data frame for plotting the trend line
+# # Plot
+# DOC_plot <- ggplot(data = chem_dat_wide_summary,
+#                    aes(y = DOC_mgL_dl_lake, x = DOC_mgL_dl_stream, color = shore)) +
+#   geom_point(size = 2, alpha = 0.75, aes(shape = substrate)) +
+#   geom_hline(yintercept = 0.25, color = "grey50") + 
+#   geom_vline(xintercept = 0.25, color = "grey50") +
+#   labs(y=expression(Lake~DOC~mg~L^-1), x=expression(Stream~DOC~mg~L^-1)) +
+#   scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+#   scale_x_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+#   scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +  
+#   xlim(0, 4.5) +ylim(0, 4.5)+
+#   theme_bw()
+
+
+r.squaredGLMM(stream_DOC)
+hist(residuals(stream_DOC))
+
+
+
+
+chem_grid <- ggarrange(NO3_plot,
+                     NH3_plot,
+                     DOC_plot,
+                     PO4_plot,
+                     ncol = 2, nrow = 2,
+                     common.legend = TRUE, 
+                     labels = c("A", "B", "C", "D"),
+                     legend = "bottom")
+###
+ggsave(plot = chem_grid, filename = paste("./SFS24_Analysis/figures/Lake_streamChem_plot.png",sep=""),width=5,height=5.05,dpi=300)
+
 
 

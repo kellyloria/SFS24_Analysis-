@@ -108,7 +108,11 @@ library(stringr)
 # # * consider deleting: /Users/kellyloria/Documents/LittoralMetabModeling/plotDat/
 
 getwd()
-SFS_datQ <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/SFS24_data_T.rds")
+SFS_datQ <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/SFS24_analysis_dat.rds")
+summary(SFS_datQ)
+str(SFS_datQ)
+
+SFS_datQ <- readRDS("/Users/kellyloria/Documents/UNR/MSMmetab/SFS24_analysis_dat/SFS24_analysis_dat.rds")
 summary(SFS_datQ)
 str(SFS_datQ)
 
@@ -122,6 +126,17 @@ str(SFS_datQ)
 se <- function(dat){
   se <- sd(dat)/sqrt(length(dat))
   return(se)}
+
+
+SFS_datQ1 <- SFS_datQ %>%
+  mutate(
+    position = case_when(
+      site %in% c("BWNS1","GBNS1", "SSNS1", "SHNS1") ~ "north",
+      site %in% c("BWNS2","GBNS2", "SSNS2", "SHNS2" ) ~ "center",
+      site %in% c("BWNS3","GBNS3", "SHNS3") ~ "south",
+      TRUE ~ as.character(site)
+    )
+  )
 
 
 names(SFS_datQ)
@@ -158,7 +173,7 @@ SFS_datQ_agg22<- SFS_datQ_agg%>%
 SFS_datQ_agg23<- SFS_datQ_agg%>%
   filter(year==2023)
 
-GPP_plot <- ggplot(data = SFS_datQ_agg, aes(date, GPP_m, color = shore))+
+GPP_plot <- ggplot(data = SFS_datQ, aes(date, GPP_m, color = shore))+
   geom_ribbon(aes(ymin = GPP_m-GPP_sd, ymax = GPP_m+GPP_sd, fill = shore),
               linetype = 0, alpha = 0.2)+
   geom_point(size= 3, alpha = 0.6)+
@@ -217,6 +232,37 @@ metab21 <- ggarrange(GPP_plot,
                     legend = "bottom")
 
 # ggsave(plot = metab21, filename = paste("./figures/NS24_metab21.png",sep=""),width=14,height=7,dpi=300)
+
+
+names(SFS_datQ)
+
+SFS_datQ$ER_m_t <- (SFS_datQ$middle_ER *-1)
+
+GPP_ER_plot <- ggplot(data = SFS_datQ1, aes(ER_m_t, middle_GPP, color = shore))+
+  geom_point(size= 3, alpha = 0.2) +
+  scale_colour_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  labs(y=expression(GPP~mmol~O[2]~m^-3~d^-1), x= expression(ER~mmol~O[2]~m^-3~d^-1)) + 
+  theme_bw() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=18),
+        legend.text = element_text(size=14),
+        legend.title = element_text(size=14),
+        legend.position = "bottom") + 
+  scale_x_continuous(labels = scales::number_format(accuracy = 1), 
+                     breaks = seq(0, 30, by = 6.0),
+                     limits = c(0, 30.0)) +  
+  scale_y_continuous(labels = scales::number_format(accuracy = 1), 
+                     breaks = seq(0, 30, by = 6.0),
+                     limits = c(0, 30.0)) +  
+  facet_grid(shore~.)
+
+
+# Add the R-squared value and 1:1 line to each facet
+GPP_ER_plot <- GPP_ER_plot +
+  stat_cor(method = "pearson", label.x = 0.8, label.y = 24, size = 5) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black")
+
+# ggsave(plot = GPP_ER_plot, filename = paste("./figures/GPP_ER_plot_24.png",sep=""),width=3.8,height=10,dpi=300)
 
 
 
