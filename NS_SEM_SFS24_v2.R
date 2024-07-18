@@ -159,6 +159,7 @@ GB_dat_scale <- as.data.frame(GB_dat_scaled)
 str(GB_dat_scaled)
 names(GB_dat_scaled)
 
+summary(GB_dat_scale)
 
 
 ##### ER 

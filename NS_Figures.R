@@ -112,7 +112,7 @@ SFS_datQ <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/S
 summary(SFS_datQ)
 str(SFS_datQ)
 
-SFS_datQ <- readRDS("/Users/kellyloria/Documents/UNR/MSMmetab/SFS24_analysis_dat/SFS24_analysis_dat.rds")
+SFS_datQ <- readRDS("/Users/kellyloria/Documents/LittoralMetabModeling/RawData/SFS24_data_T.rds")
 summary(SFS_datQ)
 str(SFS_datQ)
 
@@ -429,6 +429,17 @@ E_plot <- ggplot(data = SFS_datQ_agg, aes(x = as.factor(weekyr3), y = ER_m, fill
   labs(y=expression(ER~mmol~O[2]~m^-3~d^-1), x = NULL) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 E_plot
+
+
+NEP_plot <- ggplot(data = SFS_datQ_agg, aes(x = as.factor(weekyr3), y = c(GPP_m + ER_m), fill = shore, color = shore)) +
+  geom_boxplot(width = 0.75, alpha = 0.5) +  
+  scale_fill_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  scale_color_manual(values = c(SS = "#136F63", BW = "#3283a8", GB = "#a67d17", SH = "#c76640")) +
+  theme_bw() + ylim(-20,20)+
+  scale_x_discrete(labels =formatted_labels) +
+  labs(y=expression(NEP~mmol~O[2]~m^-3~d^-1), x = NULL) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+NEP_plot
 
 metab23a <- ggarrange(G_plot,
                      E_plot,
